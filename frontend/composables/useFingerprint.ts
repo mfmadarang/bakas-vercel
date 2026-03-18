@@ -543,8 +543,15 @@ export function useFingerprint() {
 
     const total = collectors.length;
 
+    // Minimum time per collector step (in ms) so the progress animation
+    // is actually visible. 18 collectors × 200ms = ~3.6 seconds minimum.
+    // Without this, fast devices finish the entire scan in <100ms and
+    // the user never sees the progress screen.
+    const MIN_STEP_DELAY = 200;
+
     for (let i = 0; i < collectors.length; i++) {
       const { name, category, collect } = collectors[i];
+      const stepStart = Date.now();
 
       try {
         // 5-second timeout per collector
@@ -563,6 +570,12 @@ export function useFingerprint() {
         };
         results.push(entry);
 
+        // Wait the remaining time so each step takes at least MIN_STEP_DELAY
+        const elapsed = Date.now() - stepStart;
+        if (elapsed < MIN_STEP_DELAY) {
+          await new Promise((r) => setTimeout(r, MIN_STEP_DELAY - elapsed));
+        }
+
         if (onProgress) {
           onProgress(entry, i, total);
         }
@@ -575,6 +588,11 @@ export function useFingerprint() {
           status: "unavailable",
         };
         results.push(entry);
+
+        const elapsed = Date.now() - stepStart;
+        if (elapsed < MIN_STEP_DELAY) {
+          await new Promise((r) => setTimeout(r, MIN_STEP_DELAY - elapsed));
+        }
 
         if (onProgress) {
           onProgress(entry, i, total);
