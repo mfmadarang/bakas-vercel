@@ -1,27 +1,33 @@
 <script setup lang="ts">
 /**
- * DemoTerminal — Typewriter Tracker Simulation
+ * DemoTerminal — Color-Coded Tracker Simulation
  *
- * Simulates what a third-party tracking script sees when you visit a page.
- * Lines appear one at a time with a typewriter effect, using the user's
- * ACTUAL real-time fingerprint data to make it personal and visceral.
+ * Each line has a category that controls its color:
+ *   "system"  — dim gray, for init/status messages
+ *   "collect" — green, for data being collected
+ *   "warn"    — amber, for concerning revelations
+ *   "network" — red, for data being sent out
+ *   "done"    — cyan, for completion
  *
- * This is purely educational — the dramatic presentation makes the privacy
- * implications feel real instead of abstract.
+ * Lines appear with a typewriter effect. The terminal auto-scrolls
+ * to keep the latest line visible.
  */
 
-import { ref, onMounted, watch } from "vue";
+import { ref, onMounted, watch, nextTick } from "vue";
+import type { TerminalLine } from "~/utils/types";
 
 const props = defineProps<{
-  lines: string[];
+  lines: TerminalLine[];
   running: boolean;
 }>();
 
 const emit = defineEmits<{
   (e: "complete"): void;
+  (e: "lineAdded", index: number): void;
 }>();
 
-const visibleLines = ref<string[]>([]);
+const terminalRef = ref<HTMLElement | null>(null);
+const visibleLines = ref<TerminalLine[]>([]);
 const currentLineIndex = ref(0);
 const currentCharIndex = ref(0);
 const currentText = ref("");
@@ -29,13 +35,36 @@ const isComplete = ref(false);
 
 let typingInterval: ReturnType<typeof setInterval> | null = null;
 
+const colorMap: Record<string, string> = {
+  system: "text-zinc-500",
+  collect: "text-green-400",
+  warn: "text-amber-400",
+  network: "text-red-400",
+  done: "text-cyan-400",
+};
+
+const prefixMap: Record<string, string> = {
+  system: "sys",
+  collect: "GET",
+  warn: "!!",
+  network: "POST",
+  done: ">>>",
+};
+
+function scrollToBottom() {
+  nextTick(() => {
+    if (terminalRef.value) {
+      terminalRef.value.scrollTop = terminalRef.value.scrollHeight;
+    }
+  });
+}
+
 function startTyping() {
   visibleLines.value = [];
   currentLineIndex.value = 0;
   currentCharIndex.value = 0;
   currentText.value = "";
   isComplete.value = false;
-
   typeLine();
 }
 
@@ -50,21 +79,30 @@ function typeLine() {
   currentCharIndex.value = 0;
   currentText.value = "";
 
+  // Vary typing speed by category — network lines type faster (urgent feel)
+  const baseSpeed = line.category === "network" ? 12 : line.category === "system" ? 25 : 18;
+
   typingInterval = setInterval(() => {
-    if (currentCharIndex.value < line.length) {
-      currentText.value += line[currentCharIndex.value];
+    if (currentCharIndex.value < line.text.length) {
+      currentText.value += line.text[currentCharIndex.value];
       currentCharIndex.value++;
     } else {
-      // Line complete — add it to visible lines and move to next
       if (typingInterval) clearInterval(typingInterval);
       visibleLines.value.push(line);
       currentText.value = "";
       currentLineIndex.value++;
+      emit("lineAdded", currentLineIndex.value);
+      scrollToBottom();
 
-      // Small delay between lines to simulate script processing
-      setTimeout(() => typeLine(), 200 + Math.random() * 300);
+      // Delay between lines — longer pauses after network/warn lines for drama
+      let delay = 150 + Math.random() * 200;
+      if (line.category === "network") delay = 400 + Math.random() * 300;
+      if (line.category === "warn") delay = 350 + Math.random() * 200;
+      if (line.text === "") delay = 100;
+
+      setTimeout(() => typeLine(), delay);
     }
-  }, 20 + Math.random() * 15); // Vary typing speed slightly for realism
+  }, baseSpeed + Math.random() * 10);
 }
 
 function stop() {
@@ -88,7 +126,6 @@ onMounted(() => {
   }
 });
 
-// Cleanup on unmount
 onUnmounted(() => {
   stop();
 });
@@ -96,38 +133,44 @@ onUnmounted(() => {
 
 <template>
   <div
-    class="rounded-lg bg-zinc-950 border border-zinc-800 p-4 font-mono text-sm overflow-y-auto custom-scrollbar-dark"
-    style="max-height: 400px"
+    ref="terminalRef"
+    class="rounded-lg bg-zinc-950 border border-zinc-800 p-4 font-mono text-xs sm:text-sm overflow-y-auto custom-scrollbar-dark"
+    style="max-height: 480px"
   >
-    <!-- Terminal header dots -->
+    <!-- Terminal chrome -->
     <div class="flex items-center gap-1.5 mb-3 pb-2 border-b border-zinc-800">
       <div class="w-2.5 h-2.5 rounded-full bg-red-500" />
       <div class="w-2.5 h-2.5 rounded-full bg-amber-500" />
       <div class="w-2.5 h-2.5 rounded-full bg-green-500" />
-      <span class="ml-2 text-xs text-zinc-600">tracker.js</span>
+      <span class="ml-2 text-[10px] text-zinc-600 font-medium tracking-wider uppercase">tracker.js</span>
     </div>
 
     <!-- Completed lines -->
     <div
       v-for="(line, i) in visibleLines"
       :key="i"
-      class="leading-relaxed"
+      class="leading-relaxed py-[1px]"
     >
-      <span class="text-zinc-500">[tracker.js]</span>
-      <span class="text-green-400 ml-1">{{ line }}</span>
+      <template v-if="line.text === ''">
+        <div class="h-2"></div>
+      </template>
+      <template v-else>
+        <span class="text-zinc-600 select-none">[{{ prefixMap[line.category] }}]</span>
+        <span :class="colorMap[line.category]" class="ml-1.5">{{ line.text }}</span>
+      </template>
     </div>
 
-    <!-- Currently typing line -->
-    <div v-if="currentText" class="leading-relaxed">
-      <span class="text-zinc-500">[tracker.js]</span>
-      <span class="text-green-400 ml-1">{{ currentText }}</span>
-      <span class="animate-pulse text-green-400">▊</span>
+    <!-- Currently typing -->
+    <div v-if="currentText && currentLineIndex < lines.length" class="leading-relaxed py-[1px]">
+      <span class="text-zinc-600 select-none">[{{ prefixMap[lines[currentLineIndex].category] }}]</span>
+      <span :class="colorMap[lines[currentLineIndex].category]" class="ml-1.5">{{ currentText }}</span>
+      <span class="animate-pulse" :class="colorMap[lines[currentLineIndex].category]">▊</span>
     </div>
 
-    <!-- Blinking cursor when idle or waiting -->
+    <!-- Idle cursor -->
     <div v-if="!isComplete && !currentText && visibleLines.length === 0" class="leading-relaxed">
-      <span class="text-zinc-500">[tracker.js]</span>
-      <span class="animate-pulse text-green-400 ml-1">▊</span>
+      <span class="text-zinc-600 select-none">[sys]</span>
+      <span class="animate-pulse text-zinc-500 ml-1.5">▊</span>
     </div>
   </div>
 </template>
