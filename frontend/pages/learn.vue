@@ -111,9 +111,9 @@ const currentLevel = computed(() => levels[activeLevel.value]);
       </div>
     </section>
 
-    <!-- ═══ Ano ang Browser Fingerprinting? ═══ -->
+    <!-- ═══ What is Browser Fingerprinting? ═══ -->
     <section class="mb-12 max-w-3xl mx-auto">
-      <h2 class="text-xl font-bold mb-4">Ano ang Browser Fingerprinting?</h2>
+      <h2 class="text-xl font-bold mb-4">What is Browser Fingerprinting?</h2>
 
       <div class="text-sm text-zinc-600 dark:text-zinc-400 space-y-4 leading-relaxed">
         <p>
@@ -184,9 +184,9 @@ const currentLevel = computed(() => levels[activeLevel.value]);
       </p>
     </section>
 
-    <!-- ═══ Paano Ito Ginagamit? ═══ -->
+    <!-- ═══ How is it Used? ═══ -->
     <section class="mb-12 max-w-3xl mx-auto">
-      <h2 class="text-xl font-bold mb-5">Paano Ito Ginagamit?</h2>
+      <h2 class="text-xl font-bold mb-5">How is it Used?</h2>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div class="rounded-xl border border-black/[0.07] dark:border-white/[0.07] bg-white dark:bg-[#111111] p-5">
@@ -268,9 +268,9 @@ const currentLevel = computed(() => levels[activeLevel.value]);
       </div>
     </section>
 
-    <!-- ═══ Paano Maprotektahan ang Sarili? ═══ -->
+    <!-- ═══ How to Protect Yourself ═══ -->
     <section class="mb-12 max-w-3xl mx-auto">
-      <h2 class="text-xl font-bold mb-2">Paano Maprotektahan ang Sarili?</h2>
+      <h2 class="text-xl font-bold mb-2">How to Protect Yourself</h2>
       <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-5">
         Pick a level that matches how far you want to go.
       </p>
