@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { storeToRefs } from "pinia";
-import { Sun, Moon, Menu, X, Fingerprint } from "lucide-vue-next";
+import { Sun, Moon, Menu, X } from "lucide-vue-next";
 
 const colorMode = useColorMode();
 const route = useRoute();
@@ -27,10 +27,7 @@ const navLinks = [
     <div class="max-w-5xl mx-auto px-4 sm:px-6">
       <div class="flex items-center justify-between h-14">
         <!-- Logo -->
-        <NuxtLink to="/" class="flex items-center gap-2 font-bold text-lg">
-          <Fingerprint class="w-5 h-5 text-accent dark:text-accent-dark" />
-          <span>bakas</span>
-        </NuxtLink>
+        <BakasLogo />
 
         <!-- Desktop nav -->
         <nav class="hidden sm:flex items-center gap-1">
@@ -81,25 +78,35 @@ const navLinks = [
       </div>
 
       <!-- Mobile nav dropdown -->
-      <nav
-        v-if="mobileMenuOpen"
-        class="sm:hidden pb-3 border-t border-black/[0.07] dark:border-white/[0.07]"
+      <Transition
+        enter-active-class="transition-all duration-200 ease-out"
+        enter-from-class="opacity-0 -translate-y-2"
+        enter-to-class="opacity-100 translate-y-0"
+        leave-active-class="transition-all duration-150 ease-in"
+        leave-from-class="opacity-100 translate-y-0"
+        leave-to-class="opacity-0 -translate-y-2"
       >
-        <NuxtLink
-          v-for="link in navLinks"
-          :key="link.to"
-          :to="link.to"
-          @click="toggleMobileMenu"
-          class="block px-3 py-2 rounded-md text-sm font-medium transition-colors"
-          :class="
-            route.path === link.to
-              ? 'text-accent dark:text-accent-dark bg-accent/10 dark:bg-accent-dark/10'
-              : 'text-zinc-600 dark:text-zinc-400'
-          "
+        <nav
+          v-if="mobileMenuOpen"
+          class="sm:hidden pb-3 pt-1 border-t border-black/[0.07] dark:border-white/[0.07]"
         >
-          {{ link.label }}
-        </NuxtLink>
-      </nav>
+          <NuxtLink
+            v-for="(link, i) in navLinks"
+            :key="link.to"
+            :to="link.to"
+            @click="toggleMobileMenu"
+            class="block px-3 py-2 rounded-md text-sm font-medium transition-colors"
+            :style="{ animationDelay: `${i * 40}ms` }"
+            :class="
+              route.path === link.to
+                ? 'text-accent dark:text-accent-dark bg-accent/10 dark:bg-accent-dark/10'
+                : 'text-zinc-600 dark:text-zinc-400'
+            "
+          >
+            {{ link.label }}
+          </NuxtLink>
+        </nav>
+      </Transition>
     </div>
   </header>
 </template>
