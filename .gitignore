@@ -1,0 +1,22 @@
+# Dependencies
+frontend/node_modules/
+frontend/.nuxt/
+frontend/.output/
+backend/__pycache__/
+backend/app/__pycache__/
+backend/app/routers/__pycache__/
+
+# Environment
+.env
+frontend/.env
+backend/.env
+
+# SQLite database — never commit the actual database
+backend/bakas.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
