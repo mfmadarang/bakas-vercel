@@ -1,54 +1,56 @@
 <script setup lang="ts">
 /**
- * Homepage — The first thing users see.
+ * Homepage — "Surveillance exposed" aesthetic
  *
- * The live data hook is now a row of compact pills that pop in
- * below the hero subtitle. They look like leaked data tags
- * appearing one by one — small, punchy, and doesn't eat space.
+ * The hero has a subtle animated gradient glow and grid pattern that
+ * evokes the feeling of being scanned. Live browser data types itself
+ * out in a monospace "intercepted file" card. The whole page is designed
+ * to make the user feel like they just caught the internet looking at them.
  */
 
 import {
   Fingerprint, ArrowRight, Eye, Shield, Scan, BookOpen,
-  Monitor, Globe, Cpu, Clock, ChevronRight
+  Monitor, Globe, Cpu, Clock, ChevronRight, Lock
 } from "lucide-vue-next";
 
 const store = useFingerprintStore();
 const router = useRouter();
 
-// ── Live data pills ──
-// Grabbed instantly on mount. Displayed as compact pills.
-const livePills = ref<Array<{ label: string; value: string }>>([]);
+// ── Live data ticker ──
+// Instead of pills, these type out one at a time in a monospace readout
+interface DataLine {
+  label: string;
+  value: string;
+}
+
+const liveLines = ref<DataLine[]>([]);
 const visibleCount = ref(0);
 const allRevealed = ref(false);
 let revealInterval: ReturnType<typeof setInterval> | null = null;
 
-function grabQuickData() {
-  const pills: Array<{ label: string; value: string }> = [];
-
-  pills.push({ label: "Screen", value: `${screen.width}x${screen.height}` });
-  pills.push({ label: "Timezone", value: Intl.DateTimeFormat().resolvedOptions().timeZone.split("/").pop() || "Unknown" });
-
+function grabQuickData(): DataLine[] {
+  const lines: DataLine[] = [];
+  lines.push({ label: "DISPLAY", value: `${screen.width}×${screen.height} @ ${window.devicePixelRatio}x` });
+  lines.push({ label: "REGION", value: Intl.DateTimeFormat().resolvedOptions().timeZone });
   if (navigator.hardwareConcurrency) {
-    pills.push({ label: "CPU", value: `${navigator.hardwareConcurrency} cores` });
+    lines.push({ label: "CPU", value: `${navigator.hardwareConcurrency} logical cores` });
   }
-
-  pills.push({ label: "Language", value: navigator.language });
-  pills.push({ label: "Pixel ratio", value: `${window.devicePixelRatio}x` });
-  pills.push({ label: "Platform", value: navigator.platform });
-
-  return pills;
+  lines.push({ label: "LOCALE", value: navigator.language });
+  lines.push({ label: "PLATFORM", value: navigator.platform });
+  lines.push({ label: "TOUCH", value: navigator.maxTouchPoints > 0 ? `${navigator.maxTouchPoints} points (mobile)` : "none (desktop)" });
+  return lines;
 }
 
 function startReveal() {
   visibleCount.value = 0;
   revealInterval = setInterval(() => {
-    if (visibleCount.value < livePills.value.length) {
+    if (visibleCount.value < liveLines.value.length) {
       visibleCount.value++;
     } else {
       if (revealInterval) clearInterval(revealInterval);
       allRevealed.value = true;
     }
-  }, 350);
+  }, 400);
 }
 
 function startScan() {
@@ -57,8 +59,8 @@ function startScan() {
 }
 
 onMounted(() => {
-  livePills.value = grabQuickData();
-  setTimeout(startReveal, 1000);
+  liveLines.value = grabQuickData();
+  setTimeout(startReveal, 1200);
 });
 
 onUnmounted(() => {
@@ -67,21 +69,18 @@ onUnmounted(() => {
 
 const steps = [
   {
-    number: "01",
     title: "Scan",
-    description: "We collect your browser's fingerprint entirely client-side. Nothing is sent anywhere.",
+    description: "18 collectors run entirely in your browser. Canvas, WebGL, audio, fonts, and more. Nothing is sent anywhere.",
     icon: Scan,
   },
   {
-    number: "02",
     title: "Understand",
-    description: "Every data point is explained in plain language. See what trackers see and why they want it.",
+    description: "Every data point is explained. See exactly what it reveals and how unique it makes you.",
     icon: Eye,
   },
   {
-    number: "03",
     title: "Protect",
-    description: "Get personalized recommendations to reduce your fingerprint based on your actual browser.",
+    description: "Get prioritized, browser-specific recommendations to shrink your fingerprint surface.",
     icon: Shield,
   },
 ];
@@ -90,100 +89,119 @@ const steps = [
 <template>
   <div>
     <!-- ═══ Hero ═══ -->
-    <section class="py-14 sm:py-24">
-      <div class="text-center">
-        <!-- Pill badge -->
-        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-accent/10 dark:bg-accent-dark/10 text-accent dark:text-accent-dark text-xs font-semibold mb-5">
-          <Fingerprint class="w-3.5 h-3.5" />
-          Browser Fingerprint Analyzer
-        </div>
+    <section class="relative py-16 sm:py-28 overflow-hidden">
+      <!-- Background glow — soft radial that pulses subtly -->
+      <div class="absolute inset-0 pointer-events-none overflow-hidden">
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] sm:w-[800px] sm:h-[800px] rounded-full hero-glow" />
+      </div>
 
-        <h1 class="text-3xl sm:text-5xl font-bold tracking-tight mb-4 leading-[1.15]">
-          Your browser is talking<br class="hidden sm:block" />
-          about you. <span class="text-accent dark:text-accent-dark">Right now.</span>
+      <div class="relative text-center">
+        <h1 class="text-4xl sm:text-6xl font-bold tracking-tight mb-5 leading-[1.1]">
+          <span class="block text-zinc-800 dark:text-zinc-100">Your browser has a</span>
+          <span class="block text-accent dark:text-accent-dark">unique face.</span>
         </h1>
 
-        <p class="text-base sm:text-lg text-zinc-500 dark:text-zinc-400 max-w-xl mx-auto leading-relaxed mb-6">
-          Websites can identify you without cookies, accounts, or consent.
-          bakas shows you exactly how.
+        <p class="text-base sm:text-lg text-zinc-500 dark:text-zinc-400 max-w-lg mx-auto leading-relaxed mb-10">
+          Websites identify you without cookies or accounts.
+          Just by reading what your browser reveals. bakas shows you everything.
         </p>
 
-        <!-- ── Live data pills ── -->
-        <!-- Compact pills that pop in one by one like leaked browser properties -->
-        <div class="flex flex-wrap items-center justify-center gap-2 mb-3 min-h-[36px]">
-          <TransitionGroup
-            enter-active-class="transition-all duration-300 ease-out"
-            enter-from-class="opacity-0 scale-90 translate-y-1"
-            enter-to-class="opacity-100 scale-100 translate-y-0"
-          >
-            <div
-              v-for="(pill, i) in livePills.slice(0, visibleCount)"
-              :key="pill.label"
-              class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-danger/20 dark:border-danger-dark/20 bg-danger/5 dark:bg-danger-dark/5"
-            >
-              <span class="text-[10px] text-danger/60 dark:text-danger-dark/60 font-medium">{{ pill.label }}</span>
-              <span class="text-[11px] font-mono font-semibold text-danger dark:text-danger-dark">{{ pill.value }}</span>
+        <!-- ── Intercepted data readout ── -->
+        <div class="max-w-sm mx-auto mb-10">
+          <div class="rounded-lg border border-black/[0.07] dark:border-white/[0.07] bg-white dark:bg-[#0d0d0d] overflow-hidden text-left">
+            <!-- File header -->
+            <div class="flex items-center gap-2 px-3 py-2 border-b border-black/[0.05] dark:border-white/[0.05] bg-zinc-50 dark:bg-zinc-900/60">
+              <span class="w-1.5 h-1.5 rounded-full bg-danger dark:bg-danger-dark animate-pulse"></span>
+              <span class="text-[10px] font-mono font-medium text-zinc-400 uppercase tracking-widest">intercepted · your device</span>
             </div>
-          </TransitionGroup>
-        </div>
 
-        <!-- Teaser line after all pills revealed -->
-        <Transition
-          enter-active-class="transition-opacity duration-500"
-          enter-from-class="opacity-0"
-          enter-to-class="opacity-100"
-        >
-          <p v-if="allRevealed" class="text-xs text-zinc-400 mb-8">
-            We just read 6 properties. A real tracker collects <strong class="text-zinc-600 dark:text-zinc-300">18+</strong> in under a second.
-          </p>
-        </Transition>
+            <!-- Data lines -->
+            <div class="px-3 py-2 font-mono text-xs space-y-[3px]">
+              <div
+                v-for="(line, i) in liveLines"
+                :key="line.label"
+                class="flex gap-2 transition-all duration-300"
+                :class="i < visibleCount ? 'opacity-100' : 'opacity-0 translate-x-1'"
+              >
+                <span class="text-zinc-400 dark:text-zinc-600 w-16 shrink-0 text-right">{{ line.label }}</span>
+                <span class="text-accent dark:text-accent-dark font-medium truncate">{{ line.value }}</span>
+              </div>
+            </div>
+
+            <!-- Footer -->
+            <Transition
+              enter-active-class="transition-opacity duration-500"
+              enter-from-class="opacity-0"
+              enter-to-class="opacity-100"
+            >
+              <div
+                v-if="allRevealed"
+                class="px-3 py-2 border-t border-black/[0.05] dark:border-white/[0.05] bg-zinc-50 dark:bg-zinc-900/60"
+              >
+                <p class="text-[10px] font-mono text-zinc-400 text-center">
+                  6 of 18+ signals · collected in &lt;100ms · no permissions asked
+                </p>
+              </div>
+            </Transition>
+          </div>
+        </div>
 
         <!-- CTA -->
-        <div>
-          <button
-            @click="startScan"
-            class="inline-flex items-center gap-2.5 px-7 py-3.5 rounded-xl bg-accent dark:bg-accent-dark text-white font-semibold text-base transition-all shadow-lg shadow-accent/25 dark:shadow-accent-dark/25 hover:shadow-xl hover:shadow-accent/30 dark:hover:shadow-accent-dark/30 hover:opacity-90"
-          >
-            <Fingerprint class="w-5 h-5" />
-            See Your Full Fingerprint
-            <ArrowRight class="w-4 h-4" />
-          </button>
+        <button
+          @click="startScan"
+          class="group inline-flex items-center gap-2.5 px-7 py-3.5 rounded-xl bg-accent dark:bg-accent-dark text-white font-semibold text-base transition-all shadow-lg shadow-accent/20 dark:shadow-accent-dark/20 hover:shadow-xl hover:shadow-accent/30 dark:hover:shadow-accent-dark/30 hover:opacity-90"
+        >
+          <Fingerprint class="w-5 h-5" />
+          See Your Full Fingerprint
+          <ArrowRight class="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+        </button>
 
-          <p class="text-[11px] text-zinc-400 mt-3 flex items-center justify-center gap-1.5">
-            <Shield class="w-3 h-3" />
-            100% client-side. Nothing leaves your browser.
-          </p>
-        </div>
+        <p class="text-[11px] text-zinc-400 mt-4 flex items-center justify-center gap-1.5">
+          <Lock class="w-3 h-3" />
+          Runs entirely in your browser. Zero data leaves your device.
+        </p>
+      </div>
+    </section>
+
+    <!-- ═══ Divider stat ═══ -->
+    <section class="py-8 text-center">
+      <div class="inline-flex items-baseline gap-2">
+        <span class="text-5xl sm:text-6xl font-bold text-accent dark:text-accent-dark">90%+</span>
+        <span class="text-sm text-zinc-500 dark:text-zinc-400 max-w-[200px] text-left leading-tight">
+          of browsers have a unique fingerprint
+        </span>
       </div>
     </section>
 
     <!-- ═══ How It Works ═══ -->
     <section class="py-10 mb-6">
-      <h2 class="text-xl font-bold text-center mb-8">How bakas works</h2>
+      <h2 class="text-xl font-bold text-center mb-8">How it works</h2>
 
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div
-          v-for="step in steps"
-          :key="step.number"
-          class="relative rounded-xl border border-black/[0.07] dark:border-white/[0.07] bg-white dark:bg-[#111111] p-5 transition-shadow duration-200 hover:shadow-md"
+          v-for="(step, i) in steps"
+          :key="step.title"
+          class="relative rounded-xl border border-black/[0.07] dark:border-white/[0.07] bg-white dark:bg-[#111111] p-5 transition-shadow duration-200 hover:shadow-md overflow-hidden"
         >
-          <!-- Step number -->
-          <span class="text-3xl font-bold text-zinc-200 dark:text-zinc-800 absolute top-4 right-4 select-none">
-            {{ step.number }}
+          <!-- Step number — large, using accent color at very low opacity -->
+          <span class="absolute -top-2 -right-1 text-6xl font-black text-accent/[0.06] dark:text-accent-dark/[0.08] select-none leading-none">
+            {{ i + 1 }}
           </span>
 
-          <div class="w-10 h-10 rounded-xl bg-accent/10 dark:bg-accent-dark/10 flex items-center justify-center mb-4">
-            <component :is="step.icon" class="w-5 h-5 text-accent dark:text-accent-dark" />
+          <div class="relative">
+            <div class="w-10 h-10 rounded-xl bg-accent/10 dark:bg-accent-dark/10 flex items-center justify-center mb-4">
+              <component :is="step.icon" class="w-5 h-5 text-accent dark:text-accent-dark" />
+            </div>
+            <h3 class="text-base font-semibold text-zinc-800 dark:text-zinc-100 mb-1.5">{{ step.title }}</h3>
+            <p class="text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed">
+              {{ step.description }}
+            </p>
           </div>
-          <h3 class="text-base font-semibold text-zinc-800 dark:text-zinc-100 mb-1.5">{{ step.title }}</h3>
-          <p class="text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed">
-            {{ step.description }}
-          </p>
         </div>
       </div>
     </section>
 
-    <!-- ═══ What We Collect ═══ -->
+    <!-- ═══ Trackers vs bakas ═══ -->
     <section class="py-10 mb-6">
       <div class="rounded-xl border border-black/[0.07] dark:border-white/[0.07] bg-white dark:bg-[#111111] overflow-hidden">
         <div class="grid grid-cols-1 sm:grid-cols-2">
@@ -196,23 +214,23 @@ const steps = [
             <ul class="space-y-2.5 text-sm text-zinc-600 dark:text-zinc-400">
               <li class="flex items-start gap-2">
                 <span class="w-1 h-1 rounded-full bg-danger dark:bg-danger-dark mt-2 shrink-0"></span>
-                Canvas rendering signature (unique to your GPU)
+                Canvas rendering unique to your GPU and drivers
               </li>
               <li class="flex items-start gap-2">
                 <span class="w-1 h-1 rounded-full bg-danger dark:bg-danger-dark mt-2 shrink-0"></span>
-                WebGL hardware info and driver version
+                WebGL hardware model and extension list
               </li>
               <li class="flex items-start gap-2">
                 <span class="w-1 h-1 rounded-full bg-danger dark:bg-danger-dark mt-2 shrink-0"></span>
-                Audio processing fingerprint
+                Audio processing signature from your sound card
               </li>
               <li class="flex items-start gap-2">
                 <span class="w-1 h-1 rounded-full bg-danger dark:bg-danger-dark mt-2 shrink-0"></span>
-                Installed fonts, screen resolution, timezone
+                Installed fonts, screen resolution, timezone, locale
               </li>
               <li class="flex items-start gap-2">
                 <span class="w-1 h-1 rounded-full bg-danger dark:bg-danger-dark mt-2 shrink-0"></span>
-                CPU cores, RAM, device sensors, and 10+ more
+                CPU threads, RAM, battery, sensors, and more
               </li>
             </ul>
           </div>
@@ -226,23 +244,23 @@ const steps = [
             <ul class="space-y-2.5 text-sm text-zinc-600 dark:text-zinc-400">
               <li class="flex items-start gap-2">
                 <span class="w-1 h-1 rounded-full bg-safe dark:bg-safe-dark mt-2 shrink-0"></span>
-                Everything runs in your browser. Nothing is sent to a server.
+                100% client-side. Nothing touches a server.
               </li>
               <li class="flex items-start gap-2">
                 <span class="w-1 h-1 rounded-full bg-safe dark:bg-safe-dark mt-2 shrink-0"></span>
-                Every data point is explained in plain language.
+                Every data point explained in plain language.
               </li>
               <li class="flex items-start gap-2">
                 <span class="w-1 h-1 rounded-full bg-safe dark:bg-safe-dark mt-2 shrink-0"></span>
-                Personalized recommendations to reduce your exposure.
+                Personalized recommendations based on your browser.
               </li>
               <li class="flex items-start gap-2">
                 <span class="w-1 h-1 rounded-full bg-safe dark:bg-safe-dark mt-2 shrink-0"></span>
-                No cookies, no tracking scripts, no analytics.
+                Zero cookies. Zero trackers. Zero analytics.
               </li>
               <li class="flex items-start gap-2">
                 <span class="w-1 h-1 rounded-full bg-safe dark:bg-safe-dark mt-2 shrink-0"></span>
-                Open source. Verify everything yourself.
+                Open source. Inspect every line yourself.
               </li>
             </ul>
           </div>
@@ -267,7 +285,7 @@ const steps = [
             <ChevronRight class="w-3.5 h-3.5 text-zinc-300 dark:text-zinc-600 group-hover:text-accent dark:group-hover:text-accent-dark transition-colors" />
           </h3>
           <p class="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
-            Watch a tracking script collect your data in real time. Split-screen simulation using your actual browser.
+            Watch a tracking script collect your data in real time, using your actual browser.
           </p>
         </NuxtLink>
 
@@ -283,7 +301,7 @@ const steps = [
             <ChevronRight class="w-3.5 h-3.5 text-zinc-300 dark:text-zinc-600 group-hover:text-accent dark:group-hover:text-accent-dark transition-colors" />
           </h3>
           <p class="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
-            What fingerprinting is, how it's used, Philippine privacy law, and how to protect yourself.
+            Fingerprinting explained, Philippine privacy law, and how to protect yourself.
           </p>
         </NuxtLink>
 
@@ -299,7 +317,7 @@ const steps = [
             <ChevronRight class="w-3.5 h-3.5 text-zinc-300 dark:text-zinc-600 group-hover:text-accent dark:group-hover:text-accent-dark transition-colors" />
           </h3>
           <p class="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
-            Track how your fingerprint changes over time across browser updates and setting changes.
+            Track how your fingerprint changes across browser updates and setting changes.
           </p>
         </NuxtLink>
       </div>
@@ -317,3 +335,27 @@ const steps = [
     </section>
   </div>
 </template>
+
+<style scoped>
+/* Hero background glow — slow breathing animation */
+.hero-glow {
+  background: radial-gradient(circle, #4f46e5 0%, transparent 70%);
+  opacity: 0.06;
+  animation: slow-pulse 8s ease-in-out infinite;
+}
+
+:global(.dark) .hero-glow {
+  background: radial-gradient(circle, #6366f1 0%, transparent 70%);
+  opacity: 0.04;
+}
+
+@keyframes slow-pulse {
+  0%, 100% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.15);
+    opacity: 0.03;
+  }
+}
+</style>
