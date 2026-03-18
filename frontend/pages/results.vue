@@ -109,7 +109,13 @@ async function runScan() {
   store.isScanning = false;
   store.scanComplete = true;
 
-  uiStore.openOptIn();
+  // Only show the opt-in prompt if the backend is configured.
+  // No point asking to compare if there's nothing to compare against.
+  if (config.public.apiBase) {
+    uiStore.openOptIn();
+  } else {
+    store.saveToHistory(false);
+  }
 }
 
 // Handle opt-in: send fingerprint to backend

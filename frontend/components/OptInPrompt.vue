@@ -6,9 +6,17 @@
  * anonymized fingerprint with the backend. The design must make both
  * options equally prominent — this is a privacy tool and we must not
  * use dark patterns to push users toward sharing.
+ *
+ * When the backend isn't configured (no API base URL), the compare
+ * button is grayed out with a note explaining why.
  */
 
-import { ShieldCheck, ShieldOff } from "lucide-vue-next";
+import { ShieldCheck, ShieldOff, AlertCircle } from "lucide-vue-next";
+
+const config = useRuntimeConfig();
+
+// Backend is available if apiBase is set and not empty
+const backendAvailable = computed(() => !!config.public.apiBase);
 
 const emit = defineEmits<{
   (e: "accept"): void;
@@ -40,6 +48,17 @@ const emit = defineEmits<{
         <p>Your IP address, raw user agent, specific fonts list, or any data that could re-identify you.</p>
       </div>
 
+      <!-- Backend unavailable notice -->
+      <div
+        v-if="!backendAvailable"
+        class="mb-4 rounded-lg bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/40 p-3 text-xs"
+      >
+        <p class="font-medium text-amber-700 dark:text-amber-400">
+          <AlertCircle class="w-3.5 h-3.5 inline mr-1" />
+          Comparison server is currently offline. This feature will be available soon.
+        </p>
+      </div>
+
       <!-- Both buttons are equal size and prominence — no dark patterns -->
       <div class="flex gap-3">
         <button
@@ -50,11 +69,20 @@ const emit = defineEmits<{
           No thanks, keep it local
         </button>
         <button
+          v-if="backendAvailable"
           @click="emit('accept')"
           class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium bg-accent dark:bg-accent-dark text-white hover:opacity-90 transition-opacity"
         >
           <ShieldOff class="w-4 h-4" />
           Yes, compare me
+        </button>
+        <button
+          v-else
+          disabled
+          class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium bg-zinc-200 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-600 cursor-not-allowed"
+        >
+          <ShieldOff class="w-4 h-4" />
+          Unavailable
         </button>
       </div>
     </div>
