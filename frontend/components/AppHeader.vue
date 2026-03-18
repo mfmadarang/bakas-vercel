@@ -1,9 +1,12 @@
 <script setup lang="ts">
+import { storeToRefs } from "pinia";
 import { Sun, Moon, Menu, X, Fingerprint } from "lucide-vue-next";
 
 const colorMode = useColorMode();
 const route = useRoute();
-const { mobileMenuOpen, toggleMobileMenu } = useUiStore();
+const uiStore = useUiStore();
+const { mobileMenuOpen } = storeToRefs(uiStore);
+const { toggleMobileMenu } = uiStore;
 
 function toggleTheme() {
   colorMode.preference = colorMode.value === "dark" ? "light" : "dark";
