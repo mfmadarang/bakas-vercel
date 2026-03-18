@@ -184,7 +184,7 @@ const steps = [
           class="relative rounded-xl border border-black/[0.07] dark:border-white/[0.07] bg-white dark:bg-[#111111] p-5 transition-shadow duration-200 hover:shadow-md overflow-hidden"
         >
           <!-- Step number — large, using accent color at very low opacity -->
-          <span class="absolute -top-2 -right-1 text-6xl font-black text-accent/[0.06] dark:text-accent-dark/[0.08] select-none leading-none">
+          <span class="absolute -top-2 -right-1 text-6xl font-black text-accent/20 dark:text-accent-dark/15 select-none leading-none">
             {{ i + 1 }}
           </span>
 
