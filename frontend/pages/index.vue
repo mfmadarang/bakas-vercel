@@ -2,91 +2,53 @@
 /**
  * Homepage — The first thing users see.
  *
- * The key idea: don't just TELL people their browser leaks data.
- * SHOW them. On page load, we instantly grab a handful of their
- * browser properties and display them before they click anything.
- * That's the hook. Then they want to see the full picture.
+ * The live data hook is now a row of compact pills that pop in
+ * below the hero subtitle. They look like leaked data tags
+ * appearing one by one — small, punchy, and doesn't eat space.
  */
 
 import {
   Fingerprint, ArrowRight, Eye, Shield, Scan, BookOpen,
-  Monitor, Globe, Cpu, Clock, ChevronRight, Sparkles
+  Monitor, Globe, Cpu, Clock, ChevronRight
 } from "lucide-vue-next";
 
 const store = useFingerprintStore();
 const router = useRouter();
 
-// ── Live data preview ──
-// These are grabbed instantly on mount — no scan needed.
-// Just enough to prove the point before the user clicks anything.
-const liveData = ref<Array<{ label: string; value: string; icon: any }>>([]);
-const liveDataReady = ref(false);
+// ── Live data pills ──
+// Grabbed instantly on mount. Displayed as compact pills.
+const livePills = ref<Array<{ label: string; value: string }>>([]);
+const visibleCount = ref(0);
+const allRevealed = ref(false);
+let revealInterval: ReturnType<typeof setInterval> | null = null;
 
 function grabQuickData() {
-  const items: Array<{ label: string; value: string; icon: any }> = [];
+  const pills: Array<{ label: string; value: string }> = [];
 
-  // Screen
-  items.push({
-    label: "Your screen",
-    value: `${screen.width}x${screen.height} @ ${window.devicePixelRatio}x`,
-    icon: Monitor,
-  });
+  pills.push({ label: "Screen", value: `${screen.width}x${screen.height}` });
+  pills.push({ label: "Timezone", value: Intl.DateTimeFormat().resolvedOptions().timeZone.split("/").pop() || "Unknown" });
 
-  // Timezone
-  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  items.push({
-    label: "Your timezone",
-    value: tz,
-    icon: Globe,
-  });
-
-  // CPU cores
   if (navigator.hardwareConcurrency) {
-    items.push({
-      label: "Your CPU",
-      value: `${navigator.hardwareConcurrency} threads`,
-      icon: Cpu,
-    });
+    pills.push({ label: "CPU", value: `${navigator.hardwareConcurrency} cores` });
   }
 
-  // Platform
-  items.push({
-    label: "Your platform",
-    value: navigator.platform,
-    icon: Monitor,
-  });
+  pills.push({ label: "Language", value: navigator.language });
+  pills.push({ label: "Pixel ratio", value: `${window.devicePixelRatio}x` });
+  pills.push({ label: "Platform", value: navigator.platform });
 
-  // Language
-  items.push({
-    label: "Your language",
-    value: navigator.language,
-    icon: Globe,
-  });
-
-  // Local time
-  items.push({
-    label: "Your local time",
-    value: new Date().toLocaleTimeString("en-PH", { hour: "2-digit", minute: "2-digit" }),
-    icon: Clock,
-  });
-
-  return items;
+  return pills;
 }
-
-// Stagger the reveal of each data point
-const visibleCount = ref(0);
-let revealInterval: ReturnType<typeof setInterval> | null = null;
 
 function startReveal() {
   visibleCount.value = 0;
   revealInterval = setInterval(() => {
-    if (visibleCount.value < liveData.value.length) {
+    if (visibleCount.value < livePills.value.length) {
       visibleCount.value++;
     } else {
       if (revealInterval) clearInterval(revealInterval);
-      liveDataReady.value = true;
+      allRevealed.value = true;
     }
-  }, 300);
+  }, 350);
 }
 
 function startScan() {
@@ -95,16 +57,14 @@ function startScan() {
 }
 
 onMounted(() => {
-  liveData.value = grabQuickData();
-  // Small delay so the page renders first, then data starts appearing
-  setTimeout(startReveal, 800);
+  livePills.value = grabQuickData();
+  setTimeout(startReveal, 1000);
 });
 
 onUnmounted(() => {
   if (revealInterval) clearInterval(revealInterval);
 });
 
-// Steps section
 const steps = [
   {
     number: "01",
@@ -130,8 +90,8 @@ const steps = [
 <template>
   <div>
     <!-- ═══ Hero ═══ -->
-    <section class="py-12 sm:py-20">
-      <div class="text-center mb-10">
+    <section class="py-14 sm:py-24">
+      <div class="text-center">
         <!-- Pill badge -->
         <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-accent/10 dark:bg-accent-dark/10 text-accent dark:text-accent-dark text-xs font-semibold mb-5">
           <Fingerprint class="w-3.5 h-3.5" />
@@ -143,80 +103,57 @@ const steps = [
           about you. <span class="text-accent dark:text-accent-dark">Right now.</span>
         </h1>
 
-        <p class="text-base sm:text-lg text-zinc-500 dark:text-zinc-400 max-w-xl mx-auto leading-relaxed">
+        <p class="text-base sm:text-lg text-zinc-500 dark:text-zinc-400 max-w-xl mx-auto leading-relaxed mb-6">
           Websites can identify you without cookies, accounts, or consent.
           bakas shows you exactly how.
         </p>
-      </div>
 
-      <!-- ── Live data preview ── -->
-      <!-- This is the hook: real data appearing before the user clicks anything -->
-      <div class="max-w-2xl mx-auto mb-10">
-        <div class="rounded-xl border border-black/[0.07] dark:border-white/[0.07] bg-white dark:bg-[#111111] overflow-hidden">
-          <!-- Header -->
-          <div class="px-4 sm:px-5 py-3 border-b border-black/[0.07] dark:border-white/[0.07] bg-zinc-50/50 dark:bg-zinc-900/50">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <span class="w-1.5 h-1.5 rounded-full bg-danger dark:bg-danger-dark animate-pulse"></span>
-                <p class="text-[11px] font-semibold uppercase tracking-widest text-zinc-400">
-                  Reading your browser right now
-                </p>
-              </div>
-              <p class="text-[11px] text-zinc-400 font-mono">
-                {{ visibleCount }}/{{ liveData.length }}
-              </p>
-            </div>
-          </div>
-
-          <!-- Data rows -->
-          <div class="divide-y divide-black/[0.04] dark:divide-white/[0.04]">
-            <div
-              v-for="(item, i) in liveData"
-              :key="item.label"
-              class="flex items-center gap-3 px-4 sm:px-5 py-3 transition-all duration-300"
-              :class="i < visibleCount ? 'opacity-100' : 'opacity-0'"
-            >
-              <div class="w-8 h-8 rounded-lg bg-accent/10 dark:bg-accent-dark/10 flex items-center justify-center shrink-0">
-                <component :is="item.icon" class="w-4 h-4 text-accent dark:text-accent-dark" />
-              </div>
-              <div class="flex-1 min-w-0">
-                <p class="text-[11px] text-zinc-400 font-medium">{{ item.label }}</p>
-                <p class="text-sm font-mono font-semibold text-zinc-800 dark:text-zinc-200 truncate">{{ item.value }}</p>
-              </div>
-              <div class="text-[10px] px-1.5 py-0.5 rounded bg-danger/10 dark:bg-danger-dark/10 text-danger dark:text-danger-dark font-medium shrink-0">
-                exposed
-              </div>
-            </div>
-          </div>
-
-          <!-- Footer teaser -->
-          <div
-            class="px-4 sm:px-5 py-3 border-t border-black/[0.07] dark:border-white/[0.07] bg-zinc-50/50 dark:bg-zinc-900/50 transition-opacity duration-500"
-            :class="liveDataReady ? 'opacity-100' : 'opacity-0'"
+        <!-- ── Live data pills ── -->
+        <!-- Compact pills that pop in one by one like leaked browser properties -->
+        <div class="flex flex-wrap items-center justify-center gap-2 mb-3 min-h-[36px]">
+          <TransitionGroup
+            enter-active-class="transition-all duration-300 ease-out"
+            enter-from-class="opacity-0 scale-90 translate-y-1"
+            enter-to-class="opacity-100 scale-100 translate-y-0"
           >
-            <p class="text-xs text-zinc-500 text-center">
-              That was just <strong class="text-zinc-700 dark:text-zinc-300">6 data points</strong>.
-              A real tracker collects <strong class="text-zinc-700 dark:text-zinc-300">18+</strong> in under a second.
-            </p>
-          </div>
+            <div
+              v-for="(pill, i) in livePills.slice(0, visibleCount)"
+              :key="pill.label"
+              class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-danger/20 dark:border-danger-dark/20 bg-danger/5 dark:bg-danger-dark/5"
+            >
+              <span class="text-[10px] text-danger/60 dark:text-danger-dark/60 font-medium">{{ pill.label }}</span>
+              <span class="text-[11px] font-mono font-semibold text-danger dark:text-danger-dark">{{ pill.value }}</span>
+            </div>
+          </TransitionGroup>
         </div>
-      </div>
 
-      <!-- CTA -->
-      <div class="text-center">
-        <button
-          @click="startScan"
-          class="inline-flex items-center gap-2.5 px-7 py-3.5 rounded-xl bg-accent dark:bg-accent-dark text-white font-semibold text-base hover:opacity-90 transition-all shadow-lg shadow-accent/25 dark:shadow-accent-dark/25 hover:shadow-xl hover:shadow-accent/30 dark:hover:shadow-accent-dark/30 hover:-translate-y-0.5"
+        <!-- Teaser line after all pills revealed -->
+        <Transition
+          enter-active-class="transition-opacity duration-500"
+          enter-from-class="opacity-0"
+          enter-to-class="opacity-100"
         >
-          <Fingerprint class="w-5 h-5" />
-          See Your Full Fingerprint
-          <ArrowRight class="w-4 h-4" />
-        </button>
+          <p v-if="allRevealed" class="text-xs text-zinc-400 mb-8">
+            We just read 6 properties. A real tracker collects <strong class="text-zinc-600 dark:text-zinc-300">18+</strong> in under a second.
+          </p>
+        </Transition>
 
-        <p class="text-[11px] text-zinc-400 mt-3 flex items-center justify-center gap-1.5">
-          <Shield class="w-3 h-3" />
-          100% client-side. Nothing leaves your browser.
-        </p>
+        <!-- CTA -->
+        <div>
+          <button
+            @click="startScan"
+            class="inline-flex items-center gap-2.5 px-7 py-3.5 rounded-xl bg-accent dark:bg-accent-dark text-white font-semibold text-base transition-all shadow-lg shadow-accent/25 dark:shadow-accent-dark/25 hover:shadow-xl hover:shadow-accent/30 dark:hover:shadow-accent-dark/30 hover:opacity-90"
+          >
+            <Fingerprint class="w-5 h-5" />
+            See Your Full Fingerprint
+            <ArrowRight class="w-4 h-4" />
+          </button>
+
+          <p class="text-[11px] text-zinc-400 mt-3 flex items-center justify-center gap-1.5">
+            <Shield class="w-3 h-3" />
+            100% client-side. Nothing leaves your browser.
+          </p>
+        </div>
       </div>
     </section>
 
@@ -228,17 +165,17 @@ const steps = [
         <div
           v-for="step in steps"
           :key="step.number"
-          class="relative rounded-xl border border-black/[0.07] dark:border-white/[0.07] bg-white dark:bg-[#111111] p-5 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
+          class="relative rounded-xl border border-black/[0.07] dark:border-white/[0.07] bg-white dark:bg-[#111111] p-5 transition-shadow duration-200 hover:shadow-md"
         >
           <!-- Step number -->
-          <span class="text-3xl font-bold text-zinc-100 dark:text-zinc-800/50 absolute top-4 right-4 select-none">
+          <span class="text-3xl font-bold text-zinc-200 dark:text-zinc-800 absolute top-4 right-4 select-none">
             {{ step.number }}
           </span>
 
           <div class="w-10 h-10 rounded-xl bg-accent/10 dark:bg-accent-dark/10 flex items-center justify-center mb-4">
             <component :is="step.icon" class="w-5 h-5 text-accent dark:text-accent-dark" />
           </div>
-          <h3 class="text-base font-semibold mb-1.5">{{ step.title }}</h3>
+          <h3 class="text-base font-semibold text-zinc-800 dark:text-zinc-100 mb-1.5">{{ step.title }}</h3>
           <p class="text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed">
             {{ step.description }}
           </p>
@@ -320,12 +257,12 @@ const steps = [
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <NuxtLink
           to="/demo"
-          class="group rounded-xl border border-black/[0.07] dark:border-white/[0.07] bg-white dark:bg-[#111111] p-5 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
+          class="group rounded-xl border border-black/[0.07] dark:border-white/[0.07] bg-white dark:bg-[#111111] p-5 transition-shadow duration-200 hover:shadow-md"
         >
           <div class="w-9 h-9 rounded-lg bg-red-100 dark:bg-red-900/20 flex items-center justify-center mb-3">
-            <Eye class="w-4.5 h-4.5 text-danger dark:text-danger-dark" />
+            <Eye class="w-4 h-4 text-danger dark:text-danger-dark" />
           </div>
-          <h3 class="text-sm font-semibold mb-1 flex items-center gap-1.5">
+          <h3 class="text-sm font-semibold text-zinc-800 dark:text-zinc-100 mb-1 flex items-center gap-1.5">
             Live Demo
             <ChevronRight class="w-3.5 h-3.5 text-zinc-300 dark:text-zinc-600 group-hover:text-accent dark:group-hover:text-accent-dark transition-colors" />
           </h3>
@@ -336,12 +273,12 @@ const steps = [
 
         <NuxtLink
           to="/learn"
-          class="group rounded-xl border border-black/[0.07] dark:border-white/[0.07] bg-white dark:bg-[#111111] p-5 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
+          class="group rounded-xl border border-black/[0.07] dark:border-white/[0.07] bg-white dark:bg-[#111111] p-5 transition-shadow duration-200 hover:shadow-md"
         >
           <div class="w-9 h-9 rounded-lg bg-accent/10 dark:bg-accent-dark/10 flex items-center justify-center mb-3">
-            <BookOpen class="w-4.5 h-4.5 text-accent dark:text-accent-dark" />
+            <BookOpen class="w-4 h-4 text-accent dark:text-accent-dark" />
           </div>
-          <h3 class="text-sm font-semibold mb-1 flex items-center gap-1.5">
+          <h3 class="text-sm font-semibold text-zinc-800 dark:text-zinc-100 mb-1 flex items-center gap-1.5">
             Learn
             <ChevronRight class="w-3.5 h-3.5 text-zinc-300 dark:text-zinc-600 group-hover:text-accent dark:group-hover:text-accent-dark transition-colors" />
           </h3>
@@ -352,12 +289,12 @@ const steps = [
 
         <NuxtLink
           to="/history"
-          class="group rounded-xl border border-black/[0.07] dark:border-white/[0.07] bg-white dark:bg-[#111111] p-5 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
+          class="group rounded-xl border border-black/[0.07] dark:border-white/[0.07] bg-white dark:bg-[#111111] p-5 transition-shadow duration-200 hover:shadow-md"
         >
           <div class="w-9 h-9 rounded-lg bg-amber-100 dark:bg-amber-900/20 flex items-center justify-center mb-3">
-            <Clock class="w-4.5 h-4.5 text-warning dark:text-warning-dark" />
+            <Clock class="w-4 h-4 text-warning dark:text-warning-dark" />
           </div>
-          <h3 class="text-sm font-semibold mb-1 flex items-center gap-1.5">
+          <h3 class="text-sm font-semibold text-zinc-800 dark:text-zinc-100 mb-1 flex items-center gap-1.5">
             Scan History
             <ChevronRight class="w-3.5 h-3.5 text-zinc-300 dark:text-zinc-600 group-hover:text-accent dark:group-hover:text-accent-dark transition-colors" />
           </h3>
@@ -371,7 +308,7 @@ const steps = [
     <!-- ═══ Etymology ═══ -->
     <section class="py-8">
       <div class="rounded-xl border border-black/[0.07] dark:border-white/[0.07] bg-white dark:bg-[#111111] p-6 sm:p-8 text-center max-w-lg mx-auto">
-        <p class="text-2xl font-bold mb-1">bakas</p>
+        <p class="text-2xl font-bold text-zinc-800 dark:text-zinc-100 mb-1">bakas</p>
         <p class="text-xs text-zinc-400 mb-3 italic">Filipino, noun</p>
         <p class="text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed">
           Trace. Track. Footprint. The marks you leave behind without realizing it.

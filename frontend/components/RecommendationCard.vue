@@ -20,7 +20,7 @@ const iconComponent = computed(() => iconMap[props.recommendation.icon] || Shiel
 
 <template>
   <div
-    class="rounded-lg border border-black/[0.07] dark:border-white/[0.07] bg-white dark:bg-[#111111] p-4 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
+    class="rounded-lg border border-black/[0.07] dark:border-white/[0.07] bg-white dark:bg-[#111111] p-4 transition-shadow duration-200 hover:shadow-md"
   >
     <div class="flex gap-3">
       <!-- Icon -->
