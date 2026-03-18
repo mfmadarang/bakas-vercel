@@ -141,13 +141,15 @@ const features = [
       </div>
     </section>
 
-    <!-- Backend offline notice (subtle, not alarming) -->
+    <!-- Backend offline notice -->
     <div
       v-if="statsError"
-      class="mb-12 flex items-center gap-2 justify-center text-xs text-zinc-400"
+      class="mb-8 max-w-md mx-auto rounded-lg bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/40 p-3 text-xs -mt-6"
     >
-      <AlertCircle class="w-3.5 h-3.5" />
-      <span>Comparison unavailable — backend offline. Fingerprint analysis still works fully.</span>
+      <p class="font-medium text-amber-700 dark:text-amber-400 text-center">
+        <AlertCircle class="w-3.5 h-3.5 inline mr-1" />
+        Comparison unavailable. Backend offline. Fingerprint analysis still works fully.
+      </p>
     </div>
 
     <!-- Feature cards -->

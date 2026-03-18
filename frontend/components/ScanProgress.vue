@@ -47,7 +47,7 @@ const progressPercent = computed(() => Math.round(props.progress * 100));
     </div>
 
     <!-- Completed items list -->
-    <div class="space-y-1.5 max-h-64 overflow-y-auto">
+    <div class="space-y-1.5 max-h-64 overflow-y-auto custom-scrollbar">
       <div
         v-for="(item, index) in completedItems"
         :key="item.name"

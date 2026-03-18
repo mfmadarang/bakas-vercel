@@ -96,7 +96,7 @@ onUnmounted(() => {
 
 <template>
   <div
-    class="rounded-lg bg-zinc-950 border border-zinc-800 p-4 font-mono text-sm overflow-y-auto"
+    class="rounded-lg bg-zinc-950 border border-zinc-800 p-4 font-mono text-sm overflow-y-auto custom-scrollbar-dark"
     style="max-height: 400px"
   >
     <!-- Terminal header dots -->
