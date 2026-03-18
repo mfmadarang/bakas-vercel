@@ -23,11 +23,20 @@ function loadHistory() {
   }
 }
 
+const showClearConfirm = ref(false);
+
 function clearHistory() {
-  if (confirm("Clear all scan history? This cannot be undone.")) {
-    localStorage.removeItem("bakas_history");
-    history.value = [];
-  }
+  showClearConfirm.value = true;
+}
+
+function confirmClear() {
+  localStorage.removeItem("bakas_history");
+  history.value = [];
+  showClearConfirm.value = false;
+}
+
+function cancelClear() {
+  showClearConfirm.value = false;
 }
 
 function formatDate(isoString: string): string {
@@ -152,5 +161,17 @@ onMounted(() => {
     <div v-if="history.length > 0" class="mt-6 text-xs text-zinc-400 text-center">
       <p>History is stored only in your browser's localStorage. It is never sent anywhere.</p>
     </div>
+
+    <!-- Clear history confirmation -->
+    <ConfirmDialog
+      v-if="showClearConfirm"
+      title="Clear scan history?"
+      message="This will permanently delete all saved scans from your browser. This cannot be undone."
+      confirm-label="Clear history"
+      cancel-label="Keep it"
+      :destructive="true"
+      @confirm="confirmClear"
+      @cancel="cancelClear"
+    />
   </div>
 </template>
