@@ -3,78 +3,74 @@
  * UniquenessGauge — Circular SVG Gauge
  *
  * Displays the uniqueness score (0–100) as a circular progress gauge.
- * The gauge is built from two SVG circles — a background track and a
- * colored arc. The arc length is calculated using stroke-dasharray/dashoffset.
- *
- * Colors:
- *   0–40  (green)  = hard to track
- *   41–70 (yellow) = moderately trackable
- *   71–100 (red)   = easily trackable
+ * The gauge is two SVG circles (background track + colored arc) with
+ * the score number centered inside using a proper relative/absolute layout.
  */
 
 const props = defineProps<{
   score: number;
   label: string;
   level: "low" | "medium" | "high";
+  size?: number;
 }>();
 
-// Circle math for the gauge arc
-const gaugeSize = 160;
-const strokeWidth = 10;
+const gaugeSize = props.size || 140;
+const strokeWidth = 8;
 const radius = (gaugeSize - strokeWidth) / 2;
 const circumference = 2 * Math.PI * radius;
 
-// How much of the circle to fill based on score (0–100)
 const dashOffset = computed(() => {
   const progress = props.score / 100;
   return circumference * (1 - progress);
 });
 
-// Color based on level
 const gaugeColor = computed(() => {
-  if (props.level === "low") return "#22c55e";    // green
-  if (props.level === "medium") return "#f59e0b";  // amber
-  return "#ef4444";                                 // red
+  if (props.level === "low") return "#22c55e";
+  if (props.level === "medium") return "#f59e0b";
+  return "#ef4444";
 });
 </script>
 
 <template>
-  <div class="flex flex-col items-center gap-3">
-    <svg :width="gaugeSize" :height="gaugeSize" class="transform -rotate-90">
-      <!-- Background track -->
-      <circle
-        :cx="gaugeSize / 2"
-        :cy="gaugeSize / 2"
-        :r="radius"
-        fill="none"
-        stroke="currentColor"
-        class="text-zinc-200 dark:text-zinc-800"
-        :stroke-width="strokeWidth"
-      />
-      <!-- Progress arc -->
-      <circle
-        :cx="gaugeSize / 2"
-        :cy="gaugeSize / 2"
-        :r="radius"
-        fill="none"
-        :stroke="gaugeColor"
-        :stroke-width="strokeWidth"
-        stroke-linecap="round"
-        :stroke-dasharray="circumference"
-        :stroke-dashoffset="dashOffset"
-        class="transition-all duration-1000 ease-out"
-      />
-    </svg>
+  <div class="flex flex-col items-center gap-2">
+    <!-- Gauge with overlaid score — relative parent so absolute child centers properly -->
+    <div class="relative" :style="{ width: `${gaugeSize}px`, height: `${gaugeSize}px` }">
+      <svg :width="gaugeSize" :height="gaugeSize" class="transform -rotate-90">
+        <!-- Background track -->
+        <circle
+          :cx="gaugeSize / 2"
+          :cy="gaugeSize / 2"
+          :r="radius"
+          fill="none"
+          stroke="currentColor"
+          class="text-zinc-200 dark:text-zinc-800"
+          :stroke-width="strokeWidth"
+        />
+        <!-- Progress arc -->
+        <circle
+          :cx="gaugeSize / 2"
+          :cy="gaugeSize / 2"
+          :r="radius"
+          fill="none"
+          :stroke="gaugeColor"
+          :stroke-width="strokeWidth"
+          stroke-linecap="round"
+          :stroke-dasharray="circumference"
+          :stroke-dashoffset="dashOffset"
+          class="transition-all duration-1000 ease-out"
+        />
+      </svg>
 
-    <!-- Score number overlaid in the center -->
-    <div class="absolute flex flex-col items-center" style="margin-top: 50px">
-      <span class="text-3xl font-bold">{{ score }}</span>
-      <span class="text-xs text-zinc-500 dark:text-zinc-400">/100</span>
+      <!-- Score centered inside the gauge -->
+      <div class="absolute inset-0 flex flex-col items-center justify-center">
+        <span class="text-3xl font-bold leading-none">{{ score }}</span>
+        <span class="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5">/100</span>
+      </div>
     </div>
 
-    <!-- Label below the gauge -->
+    <!-- Label below -->
     <p
-      class="text-sm font-medium text-center"
+      class="text-xs font-semibold tracking-wide uppercase"
       :class="{
         'text-safe dark:text-safe-dark': level === 'low',
         'text-warning dark:text-warning-dark': level === 'medium',
