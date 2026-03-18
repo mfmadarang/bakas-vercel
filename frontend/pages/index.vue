@@ -90,8 +90,8 @@ const steps = [
   <div>
     <!-- ═══ Hero ═══ -->
     <section class="relative py-16 sm:py-28 overflow-hidden">
-      <!-- Background glow — soft radial that pulses subtly -->
-      <div class="absolute inset-0 pointer-events-none overflow-hidden">
+      <!-- Background glow — only in dark mode, very subtle -->
+      <div class="absolute inset-0 pointer-events-none overflow-hidden hidden dark:block">
         <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] sm:w-[800px] sm:h-[800px] rounded-full hero-glow" />
       </div>
 
@@ -337,25 +337,20 @@ const steps = [
 </template>
 
 <style scoped>
-/* Hero background glow — slow breathing animation */
 .hero-glow {
-  background: radial-gradient(circle, #4f46e5 0%, transparent 70%);
-  opacity: 0.06;
-  animation: slow-pulse 8s ease-in-out infinite;
-}
-
-:global(.dark) .hero-glow {
   background: radial-gradient(circle, #6366f1 0%, transparent 70%);
   opacity: 0.04;
+  animation: slow-pulse 8s ease-in-out infinite;
 }
 
 @keyframes slow-pulse {
   0%, 100% {
     transform: translate(-50%, -50%) scale(1);
+    opacity: 0.04;
   }
   50% {
     transform: translate(-50%, -50%) scale(1.15);
-    opacity: 0.03;
+    opacity: 0.02;
   }
 }
 </style>
