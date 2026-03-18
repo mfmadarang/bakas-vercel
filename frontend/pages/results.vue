@@ -2,19 +2,19 @@
 /**
  * Results Page — Full Fingerprint Breakdown
  *
- * This is the centrepiece of bakas. When the user navigates here,
- * the scan starts automatically. After collection, it shows a
- * dashboard-style breakdown of everything the browser revealed.
+ * Shows the multi-segment gauge, detected protections, per-category
+ * score breakdown, data point details, and recommendations.
  */
 
 import {
   Fingerprint, Copy, Check, RotateCcw, Eye,
-  ShieldAlert, ShieldCheck, ShieldQuestion,
-  Scan, EyeOff, Hash, Layers
+  ShieldAlert, ShieldCheck, ShieldQuestion, ShieldBan,
+  Scan, EyeOff, ArrowRight, Lock, Unlock, Shuffle
 } from "lucide-vue-next";
 import { useFingerprint } from "~/composables/useFingerprint";
 import { generateFingerprintHash } from "~/utils/fingerprint";
 import { calculateUniquenessScore } from "~/utils/scoring";
+import type { ScoreResult, DataPointStatus } from "~/utils/scoring";
 import { generateRecommendations } from "~/utils/recommendations";
 
 const config = useRuntimeConfig();
@@ -25,7 +25,6 @@ const { collectAll } = useFingerprint();
 const completedItems = ref<any[]>([]);
 const copied = ref(false);
 
-// Section ordering for the data point breakdown
 const sectionOrder = [
   "Browser & Device",
   "Screen & Display",
@@ -38,24 +37,16 @@ const sectionOrder = [
   "Storage & APIs",
 ];
 
-// Computed stats for the summary strip
-const availableCount = computed(() =>
-  store.results.filter((r) => r.status === "available").length
-);
-const blockedCount = computed(() =>
-  store.results.filter((r) => r.status === "unavailable").length
-);
-
 // Threat level config
 const threatConfig = computed(() => {
   if (!store.scoreResult) return null;
-  const { level, score } = store.scoreResult;
+  const { level } = store.scoreResult;
 
   if (level === "high") {
     return {
       icon: ShieldAlert,
       title: "High exposure",
-      description: "Your browser reveals enough information to be uniquely identified across websites. Consider the recommendations below.",
+      description: "Your browser reveals enough information to be uniquely identified across websites.",
       bgClass: "bg-red-50 dark:bg-red-900/10",
       borderClass: "border-red-200 dark:border-red-800/40",
       iconClass: "text-danger dark:text-danger-dark",
@@ -66,7 +57,7 @@ const threatConfig = computed(() => {
     return {
       icon: ShieldQuestion,
       title: "Moderate exposure",
-      description: "Your browser is somewhat trackable. A few changes could significantly reduce your fingerprint surface.",
+      description: "Your browser is somewhat trackable. A few changes could significantly reduce your surface.",
       bgClass: "bg-amber-50 dark:bg-amber-900/10",
       borderClass: "border-amber-200 dark:border-amber-800/40",
       iconClass: "text-warning dark:text-warning-dark",
@@ -77,7 +68,7 @@ const threatConfig = computed(() => {
     return {
       icon: ShieldCheck,
       title: "Low exposure",
-      description: "Your browser is doing a good job at limiting trackable data points. Keep it up.",
+      description: "Your browser is doing a good job at limiting trackable data points.",
       bgClass: "bg-green-50 dark:bg-green-900/10",
       borderClass: "border-green-200 dark:border-green-800/40",
       iconClass: "text-safe dark:text-safe-dark",
@@ -87,7 +78,29 @@ const threatConfig = computed(() => {
   }
 });
 
-// Start the scan when the page loads
+// Status icon and color mapping
+function getStatusConfig(status: DataPointStatus) {
+  switch (status) {
+    case "exposed":
+      return { icon: Unlock, class: "text-danger dark:text-danger-dark", bg: "bg-red-100 dark:bg-red-900/20", label: "Exposed" };
+    case "blocked":
+      return { icon: ShieldBan, class: "text-zinc-400 dark:text-zinc-600", bg: "bg-zinc-100 dark:bg-zinc-800", label: "Blocked" };
+    case "protected":
+      return { icon: Shuffle, class: "text-safe dark:text-safe-dark", bg: "bg-green-100 dark:bg-green-900/20", label: "Protected" };
+    case "low_risk":
+      return { icon: Lock, class: "text-zinc-400 dark:text-zinc-500", bg: "bg-zinc-100 dark:bg-zinc-800", label: "Low risk" };
+  }
+}
+
+// Protection impact badge colors
+function getImpactClass(impact: "high" | "medium" | "low") {
+  switch (impact) {
+    case "high": return "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400";
+    case "medium": return "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400";
+    case "low": return "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400";
+  }
+}
+
 async function runScan() {
   if (store.scanComplete || store.isScanning) return;
 
@@ -109,8 +122,6 @@ async function runScan() {
   store.isScanning = false;
   store.scanComplete = true;
 
-  // Only show the opt-in prompt if the backend is configured.
-  // No point asking to compare if there's nothing to compare against.
   if (config.public.apiBase) {
     uiStore.openOptIn();
   } else {
@@ -118,7 +129,6 @@ async function runScan() {
   }
 }
 
-// Handle opt-in: send fingerprint to backend
 async function handleOptIn() {
   uiStore.closeOptIn();
 
@@ -192,9 +202,7 @@ async function copyHash() {
     await navigator.clipboard.writeText(store.hash);
     copied.value = true;
     setTimeout(() => (copied.value = false), 2000);
-  } catch {
-    // clipboard API not available
-  }
+  } catch {}
 }
 
 function rescan() {
@@ -210,7 +218,7 @@ onMounted(() => {
 
 <template>
   <div>
-    <!-- ═══ Scanning State ═══ -->
+    <!-- ═══ Scanning ═══ -->
     <div v-if="store.isScanning" class="py-16">
       <ScanProgress
         :completed-items="completedItems"
@@ -223,23 +231,17 @@ onMounted(() => {
     <!-- ═══ Results ═══ -->
     <div v-else-if="store.scanComplete">
 
-      <!-- ── Hero Card: Visual + Gauge + Hash ── -->
-      <section
-        class="rounded-xl border border-black/[0.07] dark:border-white/[0.07] bg-white dark:bg-[#111111] p-6 sm:p-8 mb-6"
-      >
+      <!-- ── Hero: Visual + Gauge + Hash ── -->
+      <section class="rounded-xl border border-black/[0.07] dark:border-white/[0.07] bg-white dark:bg-[#111111] p-6 sm:p-8 mb-6">
         <div class="flex flex-col sm:flex-row items-center gap-8">
-          <!-- Left: Fingerprint visual -->
           <div class="shrink-0">
-            <FingerprintVisual :hash="store.hash" :size="140" />
+            <FingerprintVisual :hash="store.hash" :size="130" />
           </div>
 
-          <!-- Center: Hash + metadata -->
           <div class="flex-1 min-w-0 text-center sm:text-left">
             <p class="text-xs font-medium uppercase tracking-widest text-zinc-400 dark:text-zinc-500 mb-1">
               Your fingerprint
             </p>
-
-            <!-- Hash -->
             <div class="flex items-center gap-2 justify-center sm:justify-start mb-3">
               <code class="text-base sm:text-lg font-mono font-semibold text-zinc-800 dark:text-zinc-200 truncate">
                 {{ store.hash.substring(0, 20) }}...
@@ -247,89 +249,131 @@ onMounted(() => {
               <button
                 @click="copyHash"
                 class="shrink-0 p-1 rounded text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors"
-                :title="copied ? 'Copied!' : 'Copy full hash'"
               >
                 <Check v-if="copied" class="w-4 h-4 text-safe dark:text-safe-dark" />
                 <Copy v-else class="w-4 h-4" />
               </button>
             </div>
-
             <p class="text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed max-w-md">
-              This hash is generated from your browser's unique combination of properties.
-              Same setup, same hash. One change, completely different hash.
+              Generated from your browser's unique combination of properties.
+              Same setup, same hash. One change, completely different output.
             </p>
           </div>
 
-          <!-- Right: Score gauge -->
           <div v-if="store.scoreResult" class="shrink-0">
             <UniquenessGauge
               :score="store.scoreResult.score"
               :label="store.scoreResult.label"
               :level="store.scoreResult.level"
+              :categories="store.scoreResult.categories"
             />
           </div>
         </div>
       </section>
 
-      <!-- ── Threat Level Banner ── -->
+      <!-- ── Threat Banner ── -->
       <section
         v-if="threatConfig"
         class="rounded-xl border p-4 mb-6"
         :class="[threatConfig.bgClass, threatConfig.borderClass]"
       >
         <div class="flex items-start gap-3">
-          <component
-            :is="threatConfig.icon"
-            class="w-5 h-5 shrink-0 mt-0.5"
-            :class="threatConfig.iconClass"
-          />
+          <component :is="threatConfig.icon" class="w-5 h-5 shrink-0 mt-0.5" :class="threatConfig.iconClass" />
           <div>
-            <p class="text-sm font-semibold" :class="threatConfig.textClass">
-              {{ threatConfig.title }}
-            </p>
-            <p class="text-xs mt-0.5" :class="threatConfig.mutedClass">
-              {{ threatConfig.description }}
-            </p>
+            <p class="text-sm font-semibold" :class="threatConfig.textClass">{{ threatConfig.title }}</p>
+            <p class="text-xs mt-0.5" :class="threatConfig.mutedClass">{{ threatConfig.description }}</p>
           </div>
         </div>
       </section>
 
-      <!-- ── Quick Stats Strip ── -->
-      <section class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-        <div class="rounded-lg border border-black/[0.07] dark:border-white/[0.07] bg-white dark:bg-[#111111] px-4 py-3">
-          <div class="flex items-center gap-2 mb-1">
-            <Scan class="w-3.5 h-3.5 text-zinc-400" />
-            <span class="text-[11px] font-medium uppercase tracking-wider text-zinc-400">Collected</span>
-          </div>
-          <p class="text-xl font-bold">{{ store.results.length }}</p>
-          <p class="text-[11px] text-zinc-400">data points</p>
+      <!-- ── Status Summary ── -->
+      <section class="grid grid-cols-3 gap-3 mb-6" v-if="store.scoreResult">
+        <div class="rounded-lg border border-black/[0.07] dark:border-white/[0.07] bg-white dark:bg-[#111111] px-4 py-3 text-center">
+          <p class="text-2xl font-bold text-danger dark:text-danger-dark">{{ store.scoreResult.totalExposed }}</p>
+          <p class="text-[11px] text-zinc-400 mt-0.5">Exposed</p>
         </div>
-
-        <div class="rounded-lg border border-black/[0.07] dark:border-white/[0.07] bg-white dark:bg-[#111111] px-4 py-3">
-          <div class="flex items-center gap-2 mb-1">
-            <Eye class="w-3.5 h-3.5 text-safe dark:text-safe-dark" />
-            <span class="text-[11px] font-medium uppercase tracking-wider text-zinc-400">Exposed</span>
-          </div>
-          <p class="text-xl font-bold text-safe dark:text-safe-dark">{{ availableCount }}</p>
-          <p class="text-[11px] text-zinc-400">available to trackers</p>
+        <div class="rounded-lg border border-black/[0.07] dark:border-white/[0.07] bg-white dark:bg-[#111111] px-4 py-3 text-center">
+          <p class="text-2xl font-bold text-safe dark:text-safe-dark">{{ store.scoreResult.totalProtected }}</p>
+          <p class="text-[11px] text-zinc-400 mt-0.5">Protected</p>
         </div>
-
-        <div class="rounded-lg border border-black/[0.07] dark:border-white/[0.07] bg-white dark:bg-[#111111] px-4 py-3">
-          <div class="flex items-center gap-2 mb-1">
-            <EyeOff class="w-3.5 h-3.5 text-zinc-400" />
-            <span class="text-[11px] font-medium uppercase tracking-wider text-zinc-400">Blocked</span>
-          </div>
-          <p class="text-xl font-bold">{{ blockedCount }}</p>
-          <p class="text-[11px] text-zinc-400">by your browser</p>
+        <div class="rounded-lg border border-black/[0.07] dark:border-white/[0.07] bg-white dark:bg-[#111111] px-4 py-3 text-center">
+          <p class="text-2xl font-bold text-zinc-400">{{ store.scoreResult.totalBlocked }}</p>
+          <p class="text-[11px] text-zinc-400 mt-0.5">Blocked</p>
         </div>
+      </section>
 
-        <div class="rounded-lg border border-black/[0.07] dark:border-white/[0.07] bg-white dark:bg-[#111111] px-4 py-3">
-          <div class="flex items-center gap-2 mb-1">
-            <Layers class="w-3.5 h-3.5 text-zinc-400" />
-            <span class="text-[11px] font-medium uppercase tracking-wider text-zinc-400">Categories</span>
+      <!-- ── Detected Protections ── -->
+      <section v-if="store.scoreResult && store.scoreResult.protections.length > 0" class="mb-6">
+        <h2 class="text-base font-bold mb-3 flex items-center gap-2">
+          <ShieldCheck class="w-4 h-4 text-safe dark:text-safe-dark" />
+          Detected Protections
+        </h2>
+        <div class="space-y-2">
+          <div
+            v-for="p in store.scoreResult.protections"
+            :key="p.id"
+            class="rounded-lg border border-black/[0.07] dark:border-white/[0.07] bg-white dark:bg-[#111111] px-4 py-3 flex items-start gap-3"
+          >
+            <ShieldCheck class="w-4 h-4 text-safe dark:text-safe-dark shrink-0 mt-0.5" />
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 mb-0.5">
+                <p class="text-sm font-semibold text-zinc-800 dark:text-zinc-100">{{ p.label }}</p>
+                <span class="text-[10px] px-1.5 py-0.5 rounded-full font-medium" :class="getImpactClass(p.impact)">
+                  {{ p.impact }} impact
+                </span>
+              </div>
+              <p class="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">{{ p.description }}</p>
+            </div>
           </div>
-          <p class="text-xl font-bold">{{ Object.keys(store.groupedResults).length }}</p>
-          <p class="text-[11px] text-zinc-400">signal groups</p>
+        </div>
+      </section>
+
+      <!-- ── Category Breakdown ── -->
+      <section class="mb-6" v-if="store.scoreResult">
+        <h2 class="text-base font-bold mb-3">Score by Category</h2>
+        <div class="rounded-xl border border-black/[0.07] dark:border-white/[0.07] bg-white dark:bg-[#111111] overflow-hidden divide-y divide-black/[0.04] dark:divide-white/[0.04]">
+          <div
+            v-for="cat in store.scoreResult.categories"
+            :key="cat.name"
+            class="px-4 py-3"
+          >
+            <div class="flex items-center justify-between mb-1.5">
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full" :style="{ backgroundColor: cat.color }"></span>
+                <span class="text-sm font-medium text-zinc-800 dark:text-zinc-200">{{ cat.name }}</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-mono text-zinc-400">{{ cat.points }}/{{ cat.maxPoints }}</span>
+                <span
+                  class="text-xs font-semibold w-10 text-right"
+                  :class="{
+                    'text-safe dark:text-safe-dark': cat.score <= 30,
+                    'text-warning dark:text-warning-dark': cat.score > 30 && cat.score <= 60,
+                    'text-danger dark:text-danger-dark': cat.score > 60,
+                  }"
+                >{{ cat.score }}%</span>
+              </div>
+            </div>
+            <!-- Progress bar -->
+            <div class="w-full h-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
+              <div
+                class="h-full rounded-full transition-all duration-700 ease-out"
+                :style="{ width: `${cat.score}%`, backgroundColor: cat.color }"
+              />
+            </div>
+            <!-- Data point statuses -->
+            <div class="flex flex-wrap gap-1.5 mt-2">
+              <div
+                v-for="dp in cat.dataPoints"
+                :key="dp.name"
+                class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium"
+                :class="getStatusConfig(dp.status).bg"
+              >
+                <component :is="getStatusConfig(dp.status).icon" class="w-2.5 h-2.5" :class="getStatusConfig(dp.status).class" />
+                <span :class="getStatusConfig(dp.status).class">{{ dp.name }}</span>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -356,13 +400,13 @@ onMounted(() => {
           <div>
             <h2 class="text-xl font-bold">Data Point Breakdown</h2>
             <p class="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-              Everything your browser just revealed, organized by category.
+              Everything your browser revealed, organized by category.
             </p>
           </div>
           <div class="hidden sm:flex items-center gap-3 text-[11px]">
             <span class="flex items-center gap-1.5">
               <span class="w-2 h-2 rounded-full bg-red-500"></span>
-              High risk
+              High
             </span>
             <span class="flex items-center gap-1.5">
               <span class="w-2 h-2 rounded-full bg-amber-500"></span>
@@ -390,7 +434,6 @@ onMounted(() => {
         <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
           Based on what was actually collected from your browser.
         </p>
-
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <RecommendationCard
             v-for="rec in store.recommendations"
@@ -419,7 +462,7 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- ── Opt-in Modal ── -->
+    <!-- Opt-in Modal -->
     <OptInPrompt
       v-if="uiStore.showOptInModal"
       @accept="handleOptIn"
