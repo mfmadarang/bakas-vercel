@@ -141,10 +141,19 @@ onMounted(() => {
         <p class="text-[11px] text-zinc-400">
           These numbers are checked live on every page load. This is not a badge. It's a real audit.
         </p>
-        <p class="text-[11px] text-zinc-500">
-          <span class="font-semibold text-zinc-600 dark:text-zinc-400">bakas</span>
-          · 2025
-        </p>
+        <div class="flex items-center gap-3 text-[11px] text-zinc-500">
+          <NuxtLink
+            to="/privacy"
+            class="hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors"
+          >
+            Privacy Notice
+          </NuxtLink>
+          <span class="text-zinc-300 dark:text-zinc-700">|</span>
+          <span>
+            <span class="font-semibold text-zinc-600 dark:text-zinc-400">bakas</span>
+            · 2025
+          </span>
+        </div>
       </div>
     </div>
   </footer>
