@@ -1,9 +1,9 @@
 <template>
   <div
-    class="min-h-screen font-sans transition-colors duration-300 bg-page dark:bg-page-dark text-zinc-900 dark:text-zinc-100"
+    class="min-h-screen flex flex-col font-sans transition-colors duration-300 bg-page dark:bg-page-dark text-zinc-900 dark:text-zinc-100"
   >
     <AppHeader />
-    <main class="max-w-5xl mx-auto px-4 sm:px-6 py-6">
+    <main class="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-6">
       <NuxtPage />
     </main>
     <AppFooter />
