@@ -14,6 +14,7 @@
 /* Global styles — kept minimal, most styling is in Tailwind */
 html {
   scroll-behavior: smooth;
+  overflow-y: scroll;
 }
 
 body {
