@@ -22,6 +22,13 @@ import { useFingerprint } from "~/composables/useFingerprint";
 import type { TerminalLine } from "~/utils/types";
 
 const { collectAll } = useFingerprint();
+const fpStore = useFingerprintStore();
+const router = useRouter();
+
+function goToFullScan() {
+  fpStore.reset();
+  router.push("/results");
+}
 
 // Phase state
 const phase = ref<"loading" | "website" | "tracking" | "profile" | "done">("loading");
@@ -480,13 +487,13 @@ const formattedTime = computed(() => {
         <RotateCcw class="w-4 h-4" />
         Run Again
       </button>
-      <NuxtLink
-        to="/results"
+      <button
+        @click="goToFullScan"
         class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-accent dark:bg-accent-dark text-white hover:opacity-90 transition-opacity"
       >
         See your full fingerprint
         <ArrowRight class="w-4 h-4" />
-      </NuxtLink>
+      </button>
     </div>
   </div>
 </template>

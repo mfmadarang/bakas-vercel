@@ -14,6 +14,14 @@ import {
   ChevronRight, ArrowRight, Lock, Unlock, Check, X as XIcon
 } from "lucide-vue-next";
 
+const store = useFingerprintStore();
+const router = useRouter();
+
+function startScan() {
+  store.reset();
+  router.push("/results");
+}
+
 // Active protection level tab
 const activeLevel = ref<1 | 2 | 3>(1);
 
@@ -381,13 +389,13 @@ const currentLevel = computed(() => levels[activeLevel.value]);
         <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-5">
           Find out exactly what your browser is revealing right now.
         </p>
-        <NuxtLink
-          to="/results"
+        <button
+          @click="startScan"
           class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-accent dark:bg-accent-dark text-white font-medium text-sm hover:opacity-90 transition-opacity"
         >
           Scan My Browser
           <ArrowRight class="w-4 h-4" />
-        </NuxtLink>
+        </button>
       </div>
     </section>
   </div>
